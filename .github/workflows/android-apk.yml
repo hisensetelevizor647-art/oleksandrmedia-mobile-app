@@ -39,13 +39,12 @@ jobs:
       - name: Export signing SHA-1
         run: |
           mkdir -p build/metadata
-          keytool -list -v \
-            -alias androiddebugkey \
-            -keystore "$HOME/.android/debug.keystore" \
-            -storepass android \
-            -keypass android | grep "SHA1:" | head -n 1 | sed 's/^[[:space:]]*//' > build/metadata/sha1.txt
+          APKSIGNER=$(find "$ANDROID_HOME/build-tools" -name apksigner | sort | tail -n 1)
+          SHA1_HEX=$($APKSIGNER verify --print-certs build/app/outputs/flutter-apk/app-release.apk | grep "Signer #1 certificate SHA-1 digest:" | awk -F': ' '{print $2}')
+          SHA1_FORMATTED=$(echo "$SHA1_HEX" | sed 's/../&:/g; s/:$//' | tr '[:lower:]' '[:upper:]')
+          echo "$SHA1_FORMATTED" > build/metadata/sha1.txt
           echo "### Android signing SHA-1" >> "$GITHUB_STEP_SUMMARY"
-          echo "\`$(cat build/metadata/sha1.txt)\`" >> "$GITHUB_STEP_SUMMARY"
+          echo "\`$SHA1_FORMATTED\`" >> "$GITHUB_STEP_SUMMARY"
 
       - name: Upload APK and SHA-1
         uses: actions/upload-artifact@v4
