@@ -40,7 +40,11 @@ jobs:
         run: |
           mkdir -p build/metadata
           APKSIGNER=$(find "$ANDROID_HOME/build-tools" -name apksigner | sort | tail -n 1)
-          SHA1_HEX=$($APKSIGNER verify --print-certs build/app/outputs/flutter-apk/app-release.apk | grep "Signer #1 certificate SHA-1 digest:" | awk -F': ' '{print $2}')
+          SHA1_HEX=$($APKSIGNER verify --print-certs build/app/outputs/flutter-apk/app-release.apk 2>&1 | sed -n 's/.*SHA-1 digest: //p' | head -n 1)
+          if [ -z "$SHA1_HEX" ]; then
+            echo "Failed to extract SHA-1 from APK signature"
+            exit 1
+          fi
           SHA1_FORMATTED=$(echo "$SHA1_HEX" | sed 's/../&:/g; s/:$//' | tr '[:lower:]' '[:upper:]')
           echo "$SHA1_FORMATTED" > build/metadata/sha1.txt
           echo "### Android signing SHA-1" >> "$GITHUB_STEP_SUMMARY"
